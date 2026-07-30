@@ -830,6 +830,16 @@ void drawTextMessageFrame(OLEDDisplay *display, OLEDDisplayUiState *state, int16
     graphics::drawCommonFooter(display, x, y);
 }
 
+#if defined(OLED_CJK)
+static inline size_t cjkUtf8CharLen(uint8_t c)
+{
+    if ((c & 0xE0) == 0xC0) return 2;
+    if ((c & 0xF0) == 0xE0) return 3;
+    if ((c & 0xF8) == 0xF0) return 4;
+    return 1;
+}
+#endif
+
 std::vector<std::string> generateLines(OLEDDisplay *display, const char *headerStr, const char *messageBuf, int textWidth)
 {
     std::vector<std::string> lines;
@@ -858,6 +868,34 @@ std::vector<std::string> generateLines(OLEDDisplay *display, const char *headerS
             line += word + ' ';
             word.clear();
         } else {
+#if defined(OLED_CJK)
+            size_t charLen = cjkUtf8CharLen((uint8_t)ch);
+            if (charLen > 1) {
+                // Multi-byte (CJK) char: flush pending word then break at every char boundary
+                if (!word.empty()) { line += word; word.clear(); }
+                std::string glyph(1, ch);
+                for (size_t k = 1; k < charLen && messageBuf[i + (int)k]; k++)
+                    glyph += messageBuf[i + (int)k];
+                i += (int)(charLen - 1);
+                std::string test = line + glyph;
+                if (graphics::UIRenderer::measureStringWithEmotes(display, test.c_str()) > (uint16_t)textWidth) {
+                    if (!line.empty()) lines.push_back(line);
+                    line = glyph;
+                } else {
+                    line = test;
+                }
+            } else {
+                word += ch;
+                std::string test = line + word;
+                uint16_t strWidth = graphics::UIRenderer::measureStringWithEmotes(display, test.c_str());
+                if (strWidth > textWidth) {
+                    if (!line.empty())
+                        lines.push_back(line);
+                    line = word;
+                    word.clear();
+                }
+            }
+#else
             word += ch;
             std::string test = line + word;
             uint16_t strWidth = graphics::UIRenderer::measureStringWithEmotes(display, test.c_str());
@@ -867,6 +905,7 @@ std::vector<std::string> generateLines(OLEDDisplay *display, const char *headerS
                 line = word;
                 word.clear();
             }
+#endif
         }
     }
 
