@@ -3,6 +3,9 @@
 
 #include "graphics/SharedUIDisplay.h"
 #include "graphics/draw/NotificationRenderer.h"
+#if defined(BOPOMOFO_IME)
+#include "graphics/BopomofoInputModule.h"
+#endif
 #include "input/RotaryEncoderInterruptImpl1.h"
 #include "input/UpDownInterruptImpl1.h"
 #include "modules/OnScreenKeyboardModule.h"
@@ -33,7 +36,11 @@ void OnScreenKeyboardModule::start(const char *header, const char *initialText, 
         delete keyboard;
         keyboard = nullptr;
     }
+#if defined(BOPOMOFO_IME)
+    keyboard = new BopomofoInputModule();
+#else
     keyboard = new VirtualKeyboard();
+#endif
     callback = cb;
     if (header)
         keyboard->setHeader(header);
@@ -101,8 +108,16 @@ bool OnScreenKeyboardModule::processVirtualKeyboardInput(const InputEvent &event
         targetKeyboard->moveCursorLeft();
         return true;
     case INPUT_BROKER_RIGHT:
-    case INPUT_BROKER_USER_PRESS:
         targetKeyboard->moveCursorRight();
+        return true;
+    case INPUT_BROKER_USER_PRESS:
+#if defined(VK_JOYSTICK_ONLY)
+        // Joystick-only boards have no dedicated Tab key, so the user button hops
+        // to the next non-empty key instead of nudging the cursor one column.
+        targetKeyboard->moveCursorNext();
+#else
+        targetKeyboard->moveCursorRight();
+#endif
         return true;
     case INPUT_BROKER_SELECT:
         targetKeyboard->handlePress();

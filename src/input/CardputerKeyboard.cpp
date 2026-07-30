@@ -14,10 +14,14 @@ using Key = TCA8418KeyboardBase::TCA8418Key;
 constexpr uint8_t modifierFnKey = 2;
 constexpr uint8_t modifierFn = 0b0010;
 constexpr uint8_t modifierCtrlKey = 3;
+constexpr uint8_t modifierCtrl = 0b0100;
 constexpr uint8_t modifierShiftKey = 6;
 constexpr uint8_t modifierShift = 0b0001;
 constexpr uint8_t modifierOptKey = 7;
 constexpr uint8_t modifierAltKey = 11;
+
+// Ctrl+Space sentinel: a non-printable control char (<32) that CannedMessageModule ignores
+constexpr uint8_t IME_TOGGLE_CHAR = 0x02;
 
 // Num chars per key, Modulus for rotating through characters
 static uint8_t CardputerTapMod[_TCA8418_NUM_KEYS] = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -177,7 +181,15 @@ void CardputerKeyboard::released()
         }
     }
 
-    queueEvent(CardputerTapMap[last_key][modifierFlag % CardputerTapMod[last_key]]);
+    // Ctrl+Space = IME toggle sentinel (0x02), bypasses CannedMessageModule Tab interception
+    if ((modifierFlag & modifierCtrl) && last_key == 55) {
+        queueEvent((char)IME_TOGGLE_CHAR);
+        modifierFlag = 0;
+        return;
+    }
+
+    // For all other keys, strip Ctrl flag before tap-map lookup to produce normal chars
+    queueEvent(CardputerTapMap[last_key][(modifierFlag & ~modifierCtrl) % CardputerTapMod[last_key]]);
     if (isModifierKey(last_key) == false)
         modifierFlag = 0;
 }
@@ -188,12 +200,14 @@ void CardputerKeyboard::updateModifierFlag(uint8_t key)
         modifierFlag ^= modifierShift;
     } else if (key == modifierFnKey) {
         modifierFlag ^= modifierFn;
+    } else if (key == modifierCtrlKey) {
+        modifierFlag ^= modifierCtrl;
     }
 }
 
 bool CardputerKeyboard::isModifierKey(uint8_t key)
 {
-    return (key == modifierShiftKey || key == modifierFnKey);
+    return (key == modifierShiftKey || key == modifierFnKey || key == modifierCtrlKey);
 }
 
 #endif

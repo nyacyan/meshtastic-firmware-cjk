@@ -5,6 +5,9 @@
 
 #include "graphics/Screen.h" // InputEvent
 #include "graphics/VirtualKeyboard.h"
+#if defined(BOPOMOFO_IME)
+#include "graphics/BopomofoInputModule.h"
+#endif
 #include <OLEDDisplay.h>
 #include <functional>
 #include <string>

@@ -413,7 +413,12 @@ void NotificationRenderer::drawAlertBannerOverlay(OLEDDisplay *display, OLEDDisp
             } else {
                 alertBannerCallback(curSelected);
             }
-            resetBanner();
+            // Only reset if the callback didn't transition to a new notification type (e.g. text_input).
+            // If the callback called showTextInput(), current_notification_type is now text_input and
+            // resetBanner() would immediately destroy the just-started keyboard.
+            if (current_notification_type == notificationTypeEnum::selection_picker) {
+                resetBanner();
+            }
             return;
         } else if ((inEvent.inputEvent == INPUT_BROKER_CANCEL || inEvent.inputEvent == INPUT_BROKER_ALT_LONG) &&
                    alertBannerUntil != 0) {
@@ -758,6 +763,10 @@ void NotificationRenderer::drawTextInput(OLEDDisplay *display, OLEDDisplayUiStat
 
         if (inEvent.inputEvent != INPUT_BROKER_NONE) {
             bool handled = OnScreenKeyboardModule::processVirtualKeyboardInput(inEvent, virtualKeyboard);
+            if (!handled && inEvent.inputEvent == INPUT_BROKER_ANYKEY)
+                handled = virtualKeyboard->handleKeyChar((char)inEvent.kbchar);
+            if (!handled && inEvent.inputEvent == INPUT_BROKER_BACK)
+                handled = virtualKeyboard->handleKeyChar(0x08);
             if (!handled && inEvent.inputEvent == INPUT_BROKER_CANCEL) {
                 auto callback = textInputCallback;
                 delete virtualKeyboard;

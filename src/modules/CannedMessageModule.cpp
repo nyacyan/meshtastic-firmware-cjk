@@ -133,20 +133,61 @@ void CannedMessageModule::LaunchFreetextWithDestination(NodeNum newDest, uint8_t
         dest = newDest;
     }
     channel = newChannel;
-
     lastDest = dest;
     lastChannel = channel;
     lastDestSet = true;
+
+    LOG_DEBUG("[CannedMessage] LaunchFreetextWithDestination dest=0x%08x ch=%d", dest, channel);
+
+    if (osk_found && screen) {
+        char headerBuffer[64];
+        if (dest == NODENUM_BROADCAST) {
+            snprintf(headerBuffer, sizeof(headerBuffer), "To: #%s", channels.getName(channel));
+        } else {
+            snprintf(headerBuffer, sizeof(headerBuffer), "To: @%s", getNodeName(dest));
+        }
+        screen->showTextInput(headerBuffer, "", 300000, [this](const std::string &text) {
+            if (!text.empty()) {
+                this->freetext = text.c_str();
+                this->payload = CANNED_MESSAGE_RUN_STATE_FREETEXT;
+                // Clear the text_input overlay state immediately so isOverlayBannerShowing()
+                // returns false. Without this, alertBannerMessage stays set for 5 minutes,
+                // causing CannedMessageModule::handleInputEvent to block all input (incl. Tab).
+                graphics::NotificationRenderer::resetBanner();
+                updateState(CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE);
+                currentMessageIndex = -1;
+                UIFrameEvent e;
+                e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
+                this->notifyObservers(&e);
+                screen->forceDisplay();
+                setIntervalFromNow(500);
+                return;
+            } else {
+                graphics::NotificationRenderer::textInputCallback = nullptr;
+                graphics::NotificationRenderer::resetBanner();
+                this->updateState(CANNED_MESSAGE_RUN_STATE_INACTIVE);
+                this->currentMessageIndex = -1;
+                this->freetext = "";
+                this->cursor = 0;
+                UIFrameEvent e;
+                e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
+                this->notifyObservers(&e);
+                screen->forceDisplay();
+                setIntervalFromNow(50);
+                return;
+            }
+        });
+        return;
+    }
 
     updateState(CANNED_MESSAGE_RUN_STATE_FREETEXT, true);
     UIFrameEvent e;
     e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
     notifyObservers(&e);
-
-    LOG_DEBUG("[CannedMessage] LaunchFreetextWithDestination dest=0x%08x ch=%d", dest, channel);
 }
 
 static bool returnToCannedList = false;
+static bool returnToKeyboard = false; // set when Tab dismisses the IME keyboard mid-session
 bool hasKeyForNode(const meshtastic_NodeInfoLite *node)
 {
     return node && node->has_user && node->user.public_key.size > 0;
@@ -409,14 +450,14 @@ static void drawWrappedEmoteText(OLEDDisplay *display, int x, int y, const char 
  */
 int CannedMessageModule::handleInputEvent(const InputEvent *event)
 {
-    // Block ALL input if an alert banner is active
+    // Tab key: Always allow switching channels, even while a banner is showing.
+    if (event->kbchar == INPUT_BROKER_MSG_TAB && handleTabSwitch(event))
+        return 1;
+
+    // Block ALL other input if an alert banner is active
     if (screen && screen->isOverlayBannerShowing()) {
         return 0;
     }
-
-    // Tab key: Always allow switching between canned/destination screens
-    if (event->kbchar == INPUT_BROKER_MSG_TAB && handleTabSwitch(event))
-        return 1;
 
     // Matrix keypad: If matrix key, trigger action select for canned message
     if (event->inputEvent == INPUT_BROKER_MATRIXKEY) {
@@ -461,6 +502,46 @@ int CannedMessageModule::handleInputEvent(const InputEvent *event)
         }
         // Printable char (ASCII) opens free text compose
         if (event->kbchar >= 32 && event->kbchar <= 126) {
+#if defined(BOPOMOFO_IME)
+            if (osk_found && screen) {
+                char headerBuffer[64];
+                if (dest == NODENUM_BROADCAST) {
+                    snprintf(headerBuffer, sizeof(headerBuffer), "To: #%s", channels.getName(channel));
+                } else {
+                    snprintf(headerBuffer, sizeof(headerBuffer), "To: @%s", getNodeName(dest));
+                }
+                screen->showTextInput(headerBuffer, "", 300000, [this](const std::string &text) {
+                    if (!text.empty()) {
+                        this->freetext = text.c_str();
+                        this->payload = CANNED_MESSAGE_RUN_STATE_FREETEXT;
+                        graphics::NotificationRenderer::resetBanner();
+                        updateState(CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE);
+                        currentMessageIndex = -1;
+                        UIFrameEvent e;
+                        e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
+                        this->notifyObservers(&e);
+                        screen->forceDisplay();
+                        setIntervalFromNow(500);
+                    } else {
+                        graphics::NotificationRenderer::textInputCallback = nullptr;
+                        graphics::NotificationRenderer::resetBanner();
+                        updateState(CANNED_MESSAGE_RUN_STATE_INACTIVE);
+                        this->currentMessageIndex = -1;
+                        this->freetext = "";
+                        this->cursor = 0;
+                        UIFrameEvent e;
+                        e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
+                        this->notifyObservers(&e);
+                        screen->forceDisplay();
+                        setIntervalFromNow(50);
+                    }
+                });
+                // Forward the triggering keypress into the IME as the first character
+                if (graphics::NotificationRenderer::virtualKeyboard)
+                    graphics::NotificationRenderer::virtualKeyboard->handleKeyChar((char)event->kbchar);
+                return 1;
+            }
+#endif
             updateState(CANNED_MESSAGE_RUN_STATE_FREETEXT, true);
             UIFrameEvent e;
             e.action = UIFrameEvent::Action::REGENERATE_FRAMESET;
@@ -522,6 +603,15 @@ bool CannedMessageModule::handleTabSwitch(const InputEvent *event)
 {
     if (event->kbchar != 0x09)
         return false;
+
+    // If the text-input keyboard overlay is active, dismiss it first.
+    // Without this, the overlay stays visible after handleTabSwitch changes runState,
+    // making Tab appear to have no effect.
+    if (graphics::NotificationRenderer::current_notification_type == graphics::notificationTypeEnum::text_input) {
+        graphics::NotificationRenderer::textInputCallback = nullptr;
+        graphics::NotificationRenderer::resetBanner();
+        returnToKeyboard = true; // re-open keyboard after destination selection
+    }
 
     const cannedMessageModuleRunState targetState = (runState == CANNED_MESSAGE_RUN_STATE_DESTINATION_SELECTION)
                                                         ? CANNED_MESSAGE_RUN_STATE_FREETEXT
@@ -638,14 +728,27 @@ int CannedMessageModule::handleDestinationSelectionInput(const InputEvent *event
             }
         }
 
-        updateState(returnToCannedList ? CANNED_MESSAGE_RUN_STATE_ACTIVE : CANNED_MESSAGE_RUN_STATE_FREETEXT, true);
-        returnToCannedList = false;
+        if (returnToKeyboard && osk_found && screen) {
+            returnToKeyboard = false;
+            returnToCannedList = false;
+            LaunchFreetextWithDestination(dest, channel);
+        } else {
+            updateState(returnToCannedList ? CANNED_MESSAGE_RUN_STATE_ACTIVE : CANNED_MESSAGE_RUN_STATE_FREETEXT, true);
+            returnToCannedList = false;
+        }
         screen->forceDisplay(true);
         return 1;
     }
 
     // CANCEL
     if (event->inputEvent == INPUT_BROKER_CANCEL || event->inputEvent == INPUT_BROKER_ALT_LONG) {
+        if (returnToKeyboard && osk_found && screen) {
+            returnToKeyboard = false;
+            returnToCannedList = false;
+            searchQuery = "";
+            LaunchFreetextWithDestination(dest, channel);
+            return 1;
+        }
         updateState(returnToCannedList ? CANNED_MESSAGE_RUN_STATE_ACTIVE : CANNED_MESSAGE_RUN_STATE_FREETEXT, true);
         returnToCannedList = false;
         searchQuery = "";
@@ -750,6 +853,7 @@ bool CannedMessageModule::handleMessageSelectorInput(const InputEvent *event, bo
                     if (!text.empty()) {
                         this->freetext = text.c_str();
                         this->payload = CANNED_MESSAGE_RUN_STATE_FREETEXT;
+                        graphics::NotificationRenderer::resetBanner();
                         updateState(CANNED_MESSAGE_RUN_STATE_SENDING_ACTIVE);
                         currentMessageIndex = -1;
 

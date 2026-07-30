@@ -71,5 +71,9 @@ void CardKbI2cImpl::init()
     }
 #endif
     inputBroker->registerSource(this);
+#if defined(BOPOMOFO_IME)
+    // Physical keyboard with IME support: let CannedMessageModule use screen->showTextInput()
+    osk_found = true;
+#endif
     kb_found = true;
 }
