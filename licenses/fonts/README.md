@@ -8,15 +8,18 @@ a generation chain are kept in this directory.
 ## traditional_chinese_utf8_10x10.h
 
 Used through `OLED_CJK_CUSTOM` by the `gat562_family`,
-`seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw` environments. Generated from
-three fonts, each codepoint coming from the first font in the chain that covers
-it.
+`seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw` environments. Each codepoint
+comes from the first source in the chain that covers it.
 
-| Font | Role | Terms | File |
+| Source | Role | Terms | File |
 |------|------|-------|------|
+| Hand-drawn for this project | The four Bopomofo tone marks, U+02C7 U+02CA U+02CB U+02D9 | No third-party font involved | - |
 | Fusion Pixel Font 10px monospaced zh_hant (TakWolf) | Main font, 5038 of 5093 glyphs | SIL OFL 1.1, Reserved Font Name "Fusion Pixel" | `LICENSE-fusion-pixel-font.txt` |
-| Boutique Bitmap 9x9 v1.93 (fancy type foundry) | Bopomofo tone marks and Greek letters | Free use, copy, modification and redistribution, commercial or not; derivatives carry the same terms; no warranty | `LICENSE-boutique-bitmap-9x9.txt` |
-| Noto Sans CJK TC DemiLight (Google) | Last-resort fallback | SIL OFL 1.1 | `LICENSE-noto-sans-cjk.txt` |
+| Noto Sans CJK TC DemiLight (Google) | Last-resort fallback, 51 glyphs: the Greek letters and one CJK character | SIL OFL 1.1 | `LICENSE-noto-sans-cjk.txt` |
+
+The tone marks are drawn by hand rather than taken from a font because they are
+shown on every keystroke that carries a tone, and an outline font rasterised to
+10px leaves them as one or two isolated pixels.
 
 Fusion Pixel Font is itself assembled from several pixel fonts. Its upstream
 licences are kept alongside as `LICENSE-fusion-pixel-upstream-*.txt`, covering
