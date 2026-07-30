@@ -154,9 +154,15 @@ static const uint8_t SCK = PIN_SPI_SCK;
 #define PIN_QSPI_IO2 28
 #define PIN_QSPI_IO3 2
 
-// On-board QSPI Flash
+// Early GAT562 definitions inherited the RAK QSPI flash footprint, but its pins
+// (CS=P0.26, IO0=P0.30, IO1=P0.29, IO2=P0.28) collide with the GAT562 Family
+// trackball (TB_PRESS/LEFT/UP) and the NeoPixel on P0.29. The Family board has
+// no external flash, so builds that repurpose those pins disable it and keep the
+// filesystem on internal nRF52840 storage.
+#if !defined(GAT562_DISABLE_EXTERNAL_FLASH)
 #define EXTERNAL_FLASH_DEVICES IS25LP080D
 #define EXTERNAL_FLASH_USE_QSPI
+#endif
 
 /* @note RAK5005-O GPIO mapping to RAK4631 GPIO ports
    RAK5005-O <->  nRF52840
