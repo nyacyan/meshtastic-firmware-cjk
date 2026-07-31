@@ -1,0 +1,69 @@
+name: Build
+
+# Every environment carrying Traditional Chinese, plus the stock environment it
+# sits next to. The stock builds are the ones that catch a change leaking out of
+# the CJK path: a _zhtw target failing means the feature broke, a stock target
+# failing means upstream behaviour was altered and the change has to be reworked.
+
+on:
+  push:
+    branches: [main, "zhtw-*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.pio_env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pio_env:
+          - gat562_family
+          - seeed_wio_tracker_L1_zhtw
+          - heltec-v3_zhtw
+          - m5stack-cardputer-adv_zhtw
+          - gat562_mesh_trial_tracker
+          - seeed_wio_tracker_L1
+          - heltec-v3
+          - m5stack-cardputer-adv
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+          cache: pip
+          cache-dependency-path: "**.ini"
+
+      # Deliberately not .github/actions/setup-base: that one also pulls in
+      # cppcheck, poetry and the Meshtastic CLI for the native and packaging
+      # builds, none of which a firmware target needs. adafruit-nrfutil is what
+      # turns the nRF52 hex into the uf2 the bootloader accepts.
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U platformio adafruit-nrfutil
+
+      - name: Build ${{ matrix.pio_env }}
+        run: pio run -e ${{ matrix.pio_env }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ matrix.pio_env }}
+          path: |
+            .pio/build/${{ matrix.pio_env }}/firmware*.uf2
+            .pio/build/${{ matrix.pio_env }}/firmware*.factory.bin
+          if-no-files-found: ignore
+          retention-days: 14

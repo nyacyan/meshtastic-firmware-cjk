@@ -1,3 +1,59 @@
+# Traditional Chinese firmware (unofficial)
+
+This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware),
+based on release `v2.7.26.54e0d8d`. It adds Traditional Chinese text rendering and a
+Bopomofo (zhuyin) input method to four boards, and nothing else: every stock
+environment is left exactly as upstream ships it.
+
+It is **not affiliated with or endorsed by the Meshtastic project**. Meshtastic® is a
+registered trademark of Meshtastic LLC. Please report problems with these builds here
+rather than to the upstream project, and reproduce them on a stock build before
+reporting anything upstream.
+
+| Environment | Board | Input |
+| --- | --- | --- |
+| `gat562_family` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
+| `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
+| `heltec-v3_zhtw` | Heltec LoRa32 V3 | display only |
+| `m5stack-cardputer-adv_zhtw` | M5Stack Cardputer Adv | Bopomofo on the physical keyboard |
+
+```
+pio run -e gat562_family
+```
+
+The glyph tables and the dictionary are generated data, checked in so the firmware
+builds without extra tooling. No font file is redistributed; only rasterised bitmaps
+are embedded. Terms for every font and dictionary in the chain are in
+[`licenses/`](licenses/), alongside the upstream GPL-3.0 licence that covers the
+firmware as a whole.
+
+**These builds come with no warranty of any kind, express or implied. Flashing
+firmware can leave a device unusable, and a mesh radio running unverified firmware may
+behave in ways you do not expect. Use them at your own risk.**
+
+---
+
+## 繁體中文韌體（非官方）
+
+這是 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d`
+的非官方衍生版本，替四款機種加上繁體中文顯示與注音輸入法，其餘一律不動：所有原廠
+env 都與上游完全相同。
+
+本專案與 Meshtastic 官方專案無隸屬關係，亦未經其背書。Meshtastic® 為 Meshtastic LLC
+的註冊商標。這些韌體如有問題請回報到本專案，不要送去官方；要向官方回報之前，請先在
+原廠韌體上重現。
+
+字型點陣表與注音字典都是產生出來的資料，直接收進版本庫，所以編譯時不需要額外工具。
+本專案不轉散布任何字型檔，嵌入的只有點陣資料；所有字型與字典的授權條款放在
+[`licenses/`](licenses/)，韌體整體則沿用上游的 GPL-3.0。
+
+**本韌體不提供任何形式的保證。刷機有機會讓裝置無法開機，跑著未經驗證韌體的無線電
+節點也可能出現非預期行為。請自行承擔使用風險。**
+
+以下為上游 Meshtastic 專案的原始 README，其中的徽章與連結皆指向上游專案。
+
+---
+
 <div align="center" markdown="1">
 
 <img src=".github/meshtastic_logo.png" alt="Meshtastic Logo" width="80"/>
