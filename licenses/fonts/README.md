@@ -5,6 +5,17 @@ third-party fonts listed below. No font file is redistributed with this
 firmware; only glyph bitmaps are embedded. The full terms for every font used in
 a generation chain are kept in this directory.
 
+## Character set
+
+The Hanzi coverage of `traditional_chinese_utf8_10x10.h` and
+`traditional_chinese_utf8_16x16.h` (5093 and 5115 codepoints) is the Ministry
+of Education of Taiwan's "常用國字標準字體表" (Standard List of Frequently Used
+Characters), 4808 characters plus 281 non-Hanzi symbols, published at
+<https://language.moe.gov.tw/uploads/files/17694982751288.pdf> and parsed with
+`pdfplumber`. This list only decides which codepoints are included; no glyph
+shape or other content is taken from it, and it carries no licence terms of
+its own to reproduce here.
+
 ## traditional_chinese_utf8_10x10.h
 
 Used through `OLED_CJK_CUSTOM` by the `gat562_family_zhtw`,
