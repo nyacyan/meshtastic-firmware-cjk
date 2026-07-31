@@ -12,13 +12,13 @@ reporting anything upstream.
 
 | Environment | Board | Input |
 | --- | --- | --- |
-| `gat562_family` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
+| `gat562_family_zhtw` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
 | `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
 | `heltec-v3_zhtw` | Heltec LoRa32 V3 | display only |
 | `m5stack-cardputer-adv_zhtw` | M5Stack Cardputer Adv | Bopomofo on the physical keyboard |
 
 ```
-pio run -e gat562_family
+pio run -e gat562_family_zhtw
 ```
 
 The glyph tables and the dictionary are generated data, checked in so the firmware

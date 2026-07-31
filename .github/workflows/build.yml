@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         pio_env:
-          - gat562_family
+          - gat562_family_zhtw
           - seeed_wio_tracker_L1_zhtw
           - heltec-v3_zhtw
           - m5stack-cardputer-adv_zhtw

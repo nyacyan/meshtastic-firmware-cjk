@@ -7,7 +7,7 @@ a generation chain are kept in this directory.
 
 ## traditional_chinese_utf8_10x10.h
 
-Used through `OLED_CJK_CUSTOM` by the `gat562_family`,
+Used through `OLED_CJK_CUSTOM` by the `gat562_family_zhtw`,
 `seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw` environments. Each codepoint
 comes from the first source in the chain that covers it.
 
@@ -53,7 +53,7 @@ which Unifont renders as two boxed letters rather than one glyph.
 
 ## src/graphics/emotes_tw_10x10.h
 
-Emoji bitmaps for the `EMOTES_TW_10X10` build flag, used by `gat562_family`,
+Emoji bitmaps for the `EMOTES_TW_10X10` build flag, used by `gat562_family_zhtw`,
 `seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw`. **No third-party font is
 involved.**
 All 90 entries are hand-designed for this project, because no bitmap emoji font
