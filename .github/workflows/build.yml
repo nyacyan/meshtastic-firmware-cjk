@@ -58,7 +58,11 @@ jobs:
       - name: Build ${{ matrix.pio_env }}
         run: pio run -e ${{ matrix.pio_env }}
 
+      # Only the _zhtw targets produce something worth downloading. The stock ones
+      # are built to prove the CJK changes stayed inside their #if guards, and
+      # publishing their binaries here would just invite flashing the wrong file.
       - name: Upload artifacts
+        if: endsWith(matrix.pio_env, '_zhtw')
         uses: actions/upload-artifact@v7
         with:
           name: firmware-${{ matrix.pio_env }}
