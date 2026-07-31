@@ -187,11 +187,14 @@ void VirtualKeyboard::draw(OLEDDisplay *display, int16_t offsetX, int16_t offset
         if (maxCellHAllowed > 0 && cellH > maxCellHAllowed) {
             cellH = maxCellHAllowed;
         }
-    } else {
-        // Default (non-wide, non-64px) e.g. SH1107 128x128:
+    } else if (screenH > 64) {
+        // Non-wide but tall enough, e.g. SH1107 128x128:
         // cellH = FONT_HEIGHT_SMALL - 2 so rows are tighter while still hosting the font
         cellH = std::max((int)KEY_HEIGHT, FONT_HEIGHT_SMALL - 2);
     }
+    // 128x64 keeps cellH at KEY_HEIGHT. Four rows of 9px is what leaves the row above
+    // the keyboard free for the candidate list, and FONT_HEIGHT_SMALL - 2 is taller
+    // than that on these panels, which pushes the keyboard up over the candidates.
 
     // Keyboard placement from bottom
     const int keyboardHeight = KEYBOARD_ROWS * cellH;
