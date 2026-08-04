@@ -2,7 +2,7 @@
 
 This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware),
 based on release `v2.7.26.54e0d8d`. It adds Traditional Chinese text rendering and a
-Bopomofo (zhuyin) input method to four boards, and nothing else: every stock
+Bopomofo (zhuyin) input method to five boards, and nothing else: every stock
 environment is left exactly as upstream ships it.
 
 It is **not affiliated with or endorsed by the Meshtastic project**. Meshtastic® is a
@@ -16,10 +16,36 @@ reporting anything upstream.
 | `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
 | `heltec-v3_zhtw` | Heltec LoRa32 V3 | display only |
 | `m5stack-cardputer-adv_zhtw` | M5Stack Cardputer Adv | Bopomofo on the physical keyboard |
+| `nrf52_promicro_diy_tcxo_zhtw` | NRF52 Pro-micro DIY | display only |
+| `nrf52_promicro_diy_tcxo_ime_zhtw` | NRF52 Pro-micro DIY | Bopomofo, needs navigation hardware fitted |
+| `nrf52_promicro_diy_tcxo_kb_zhtw` | NRF52 Pro-micro DIY | Bopomofo on an I2C keyboard (M5Stack CardKB) |
 
 ```
 pio run -e gat562_family_zhtw
 ```
+
+Both Pro-micro DIY targets expect the builder to have wired a 128x64 I2C SSD1306 to the
+header, and both link with the serial log muted, which is what makes the glyph tables
+fit. Bring a new node up on the stock `nrf52_promicro_diy_tcxo` env, where the log still
+works, and flash a `_zhtw` one once the hardware is known good.
+
+The `_ime_` variant additionally needs a 4-way switch or trackball on the four free pins
+(P1.01, P1.02, P1.06, P1.07); it navigates with those and commits the highlighted key on
+a 500 ms hold of the user button, there being no fifth pin for a centre press. Its IME
+lives inside the on-screen keyboard and is toggled between Chinese and English on that
+keyboard's own ESC key, which is labelled `TW ESC` or `EN ESC` to show the current mode.
+
+The `_kb_` variant is for a physical I2C keyboard instead — an M5Stack CardKB or similar,
+found by I2C probe with no configuration. It is a separate env rather than a flag on the
+one above because the two use different IME code paths, and the on-screen one drops
+physical key characters on the floor. Typing any printable key on the message screen opens
+free-text compose, and Chinese/English toggles on `fn`+`c`. That combination is this fork's
+own: upstream toggles on Ctrl+Space, which only the Cardputer's built-in keyboard can
+generate, and a CardKB has no Ctrl key.
+
+Both IME variants cost the same eight feature modules — motion and magnetometer support,
+and INA2xx power telemetry, are the ones that bite — so if you are not going to compose on
+the node itself, prefer the display-only env, which keeps them.
 
 The glyph tables and the dictionary are generated data, checked in so the firmware
 builds without extra tooling. No font file is redistributed; only rasterised bitmaps

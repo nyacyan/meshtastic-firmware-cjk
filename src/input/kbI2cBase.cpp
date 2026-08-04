@@ -467,6 +467,26 @@ int32_t KbI2cBase::runOnce()
                     e.kbchar = c;
                 }
                 break;
+#if defined(BOPOMOFO_IME)
+            case 0x63: // letter c. Modifier toggles Chinese / English input
+                // The Cardputer's own matrix driver reaches BopomofoInputModule::toggleIME()
+                // through Ctrl+Space, but a CardKB has no Ctrl key, so fn+c stands in for it
+                // and emits the same 0x02 that CardputerKeyboard.cpp calls IME_TOGGLE_CHAR.
+                // 0x02 is below 0x20, so CannedMessageModule has no handler for it and passes
+                // it along; NotificationRenderer then hands it to handleKeyChar(). Note this
+                // only reaches an IME on builds that define BOPOMOFO_IME - the on-screen
+                // keyboard builds carry their candidate machinery inside VirtualKeyboard,
+                // whose handleKeyChar() is a no-op, and toggle on their own ESC key instead.
+                if (is_sym) {
+                    is_sym = false;
+                    e.inputEvent = INPUT_BROKER_ANYKEY;
+                    e.kbchar = 0x02;
+                } else {
+                    e.inputEvent = INPUT_BROKER_ANYKEY;
+                    e.kbchar = c;
+                }
+                break;
+#endif
             case 0x1b: // ESC
                 e.inputEvent = INPUT_BROKER_CANCEL;
                 break;
