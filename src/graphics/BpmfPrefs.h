@@ -25,9 +25,13 @@
 //   byte 1   bit 0  composing Bopomofo (1) or passing Latin through (0)
 //            bit 1  Eten layout (1) or Daqian (0)
 //
-// The record is a fixed two bytes, which is what lets savePrefs() overwrite in
-// place: FILE_O_WRITE truncates on ESP32 but not on nRF52, and a record that
-// never changes length reads back the same either way.
+// savePrefs() deletes the record before writing it rather than overwriting the
+// two bytes in place.  FILE_O_WRITE opens with LFS_O_RDWR | LFS_O_CREAT on
+// nRF52, without LFS_O_TRUNC, and a write into a file that already exists does
+// not reach the flash there: the first save creates the file and every later one
+// silently keeps the original contents.  ESP32 opens the same call with "w" and
+// would truncate, so the delete costs it nothing.  This is how the rest of the
+// tree writes its small records too, see TransmitHistory.
 
 namespace bpmf
 {
@@ -74,9 +78,12 @@ inline void savePrefs(const Prefs &p)
     // NodeDB creates /prefs before anything else writes there, but the IME can
     // be the first writer on a filesystem that was just formatted.
     FSCom.mkdir("/prefs");
+    if (FSCom.exists(PREFS_PATH))
+        FSCom.remove(PREFS_PATH);
     auto f = FSCom.open(PREFS_PATH, FILE_O_WRITE);
     if (f) {
         f.write(buf, sizeof(buf));
+        f.flush();
         f.close();
     }
 #endif
