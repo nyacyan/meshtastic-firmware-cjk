@@ -46,11 +46,24 @@ class Engine
     // which is the caller's cue to treat it as English input.
     bool addKey(char ascii)
     {
-        const Symbol *sym = lookup_key(ascii);
+        const Symbol *sym = mapKey(ascii);
         return sym ? composer_.addSymbol(*sym) : false;
     }
 
     bool addSymbol(const Symbol &sym) { return composer_.addSymbol(sym); }
+
+    // ── Keyboard layout ──────────────────────────────────────────
+    // The key tables are read through the layout this engine holds, so a caller
+    // that decides a key is not Bopomofo (and passes it through as Latin) asks
+    // the same question the composition would have asked.  A build without
+    // BOPOMOFO_LAYOUT_SWITCHABLE carries one table and pins the layout to it,
+    // which also keeps a stale stored preference from naming a table that is
+    // not linked in.
+    const Symbol *mapKey(char ascii) const { return lookup_key(ascii, layout_); }
+
+    Layout layout() const { return layout_; }
+
+    void setLayout(Layout layout) { layout_ = LAYOUT_SWITCHABLE ? layout : DEFAULT_LAYOUT; }
 
     // Space closes a syllable in the first tone, which carries no mark.
     bool addSpace() { return composer_.addSpace(); }
@@ -73,7 +86,12 @@ class Engine
 
     // ── Candidates ───────────────────────────────────────────────
     // Look up whatever is currently being composed.
-    void refresh() { searchFor(composer_.searchString()); }
+    // The composition goes to the dictionary with its tone marks on: unified_search
+    // strips them itself, but needs to see them first to know which reading the user
+    // is narrowing to. Passing searchString() here would lose the tone before the
+    // lookup and, because the query doubles as the cache key, would also stop a tone
+    // keystroke from refreshing the list at all.
+    void refresh() { searchFor(composer_.displayString()); }
 
     // Look up a composition the caller maintains itself. Repeating the
     // same query is free - that is what lets a draw path call this on
@@ -148,6 +166,7 @@ class Engine
     std::vector<std::string> candidates_;
     int                      maxCandidates_ = 50;
     bool                     prediction_    = false;
+    Layout                   layout_        = DEFAULT_LAYOUT;
     // Identifies the query behind candidates_. The leading letter keeps the
     // two lookup kinds from ever colliding on the same key.
     std::string queryKey_;

@@ -486,6 +486,19 @@ int32_t KbI2cBase::runOnce()
                     e.kbchar = c;
                 }
                 break;
+            case 0x62: // letter b. Modifier switches the Bopomofo keyboard layout
+                // Stands in for the Cardputer's Ctrl+B the same way fn+c stands in for
+                // Ctrl+Space above, and emits the 0x03 that CardputerKeyboard.cpp calls
+                // IME_LAYOUT_CHAR. Only builds that carry both layout tables act on it.
+                if (is_sym) {
+                    is_sym = false;
+                    e.inputEvent = INPUT_BROKER_ANYKEY;
+                    e.kbchar = 0x03;
+                } else {
+                    e.inputEvent = INPUT_BROKER_ANYKEY;
+                    e.kbchar = c;
+                }
+                break;
 #endif
             case 0x1b: // ESC
                 e.inputEvent = INPUT_BROKER_CANCEL;

@@ -22,6 +22,8 @@ constexpr uint8_t modifierAltKey = 11;
 
 // Ctrl+Space sentinel: a non-printable control char (<32) that CannedMessageModule ignores
 constexpr uint8_t IME_TOGGLE_CHAR = 0x02;
+// Ctrl+B sentinel, same arrangement: switches the Bopomofo keyboard layout
+constexpr uint8_t IME_LAYOUT_CHAR = 0x03;
 
 // Num chars per key, Modulus for rotating through characters
 static uint8_t CardputerTapMod[_TCA8418_NUM_KEYS] = {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -184,6 +186,13 @@ void CardputerKeyboard::released()
     // Ctrl+Space = IME toggle sentinel (0x02), bypasses CannedMessageModule Tab interception
     if ((modifierFlag & modifierCtrl) && last_key == 55) {
         queueEvent((char)IME_TOGGLE_CHAR);
+        modifierFlag = 0;
+        return;
+    }
+
+    // Ctrl+B = Bopomofo layout switch (0x03), key 31 is 'b'
+    if ((modifierFlag & modifierCtrl) && last_key == 31) {
+        queueEvent((char)IME_LAYOUT_CHAR);
         modifierFlag = 0;
         return;
     }

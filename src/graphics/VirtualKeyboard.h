@@ -20,6 +20,7 @@
 #endif
 
 #if defined(CJK_IME_ZHUYIN)
+#include "BpmfPrefs.h"
 #include "bpmf_engine.h"
 #endif
 
@@ -129,6 +130,10 @@ class VirtualKeyboard
     // search on every frame. The composition itself stays in inputText, where
     // this keyboard already draws and segments it.
     bpmf::Engine bpmfEngine;
+    // Whatever was stored when this keyboard opened, so the destructor can tell an
+    // untouched setting from one the user changed. Only the input-mode bit belongs
+    // to this front end; the layout bit is carried through unread.
+    bpmf::Prefs storedPrefs_;
 #else
     enum _IMEStatus { ACTIVE, INACTIVE } IMEStatus = INACTIVE;
 #endif

@@ -3,6 +3,7 @@
 
 #if defined(BOPOMOFO_IME) && HAS_SCREEN
 
+#include "graphics/BpmfPrefs.h"
 #include "graphics/VirtualKeyboard.h"
 #include "graphics/bpmf_engine.h"
 #include <string>
@@ -20,19 +21,28 @@ namespace graphics
 // setHeader, setInputText/getInputText, submitText, deleteCharacter) is inherited.
 //
 // Screen layout (240×135, FONT_HEIGHT_SMALL ≈ 19 px):
-//   [Header          ]  ← fh px
+//   [Header        TW/大千]  ← fh px, mode indicator at the right end
 //   ─────────────────
 //   [Committed text  ]  ← (H - fh*3 - 5) px, multi-line
 //   ─────────────────
 //   [Composition bar ]  ← fh px  (current syllable buffer, e.g. "ㄐㄧˊ")
 //   ─────────────────
 //   [Candidate bar   ]  ← fh px  (up to CAND_PER_PAGE candidates)
-//   [Status bar      ]  ← remainder (CH/EN mode + layout name)
+//
+// The four rows fill the panel, which is why the mode indicator shares the header
+// row rather than getting one of its own: a row below the candidates would have
+// had a single pixel of height here, and none at all on a 128x64 board.
 
 class BopomofoInputModule : public VirtualKeyboard
 {
   public:
     BopomofoInputModule();
+
+    // The module is constructed when the text input opens and destroyed when it
+    // closes (OnScreenKeyboardModule::start/stop), which is what makes the
+    // constructor and destructor the right places to read and write the stored
+    // input-mode preferences.
+    ~BopomofoInputModule() override;
 
     // ── Overrides ────────────────────────────────────────────────────────────
     void draw(OLEDDisplay *display, int16_t offsetX, int16_t offsetY) override;
@@ -54,9 +64,13 @@ class BopomofoInputModule : public VirtualKeyboard
     bpmf::Engine engine_;
     int candidateIdx_ = 0;
     bool chineseMode_ = true;
+    // What was on disk when this module opened, so the destructor can tell an
+    // untouched setting from one the user changed.
+    bpmf::Prefs storedPrefs_;
 
     static constexpr int CAND_PER_PAGE = 5;
 
+    void toggleLayout();
     void refreshCandidates();
     void confirmCandidate();
     void backspaceChar();
@@ -65,7 +79,9 @@ class BopomofoInputModule : public VirtualKeyboard
     void drawTextArea(OLEDDisplay *display, int16_t x, int16_t y, int16_t w, int16_t h);
     void drawCompositionBar(OLEDDisplay *display, int16_t x, int16_t y, int16_t w, int16_t h);
     void drawCandidateBar(OLEDDisplay *display, int16_t x, int16_t y, int16_t w, int16_t h);
-    void drawStatusBar(OLEDDisplay *display, int16_t x, int16_t y, int16_t w, int16_t h);
+    // Draws the mode indicator ending at rightX and reports how wide it turned
+    // out, which is how much of the header row the caller has to keep clear.
+    uint16_t drawStatusBar(OLEDDisplay *display, int16_t rightX, int16_t y);
 };
 
 } // namespace graphics

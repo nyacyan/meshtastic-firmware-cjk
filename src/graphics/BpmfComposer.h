@@ -11,9 +11,12 @@
 //  the C++ standard library, so this file travels to other firmware or
 //  to a host build unchanged.
 //
-//  Compile-time layout selection:
-//    -D BOPOMOFO_LAYOUT_YITIAN   Eten ET41 (libchewing LAYOUT_ETEN)
-//    (default)                   Daqian
+//  Layout selection:
+//    -D BOPOMOFO_LAYOUT_YITIAN       start in Eten ET41 (libchewing LAYOUT_ETEN)
+//    (default)                       start in Daqian
+//    -D BOPOMOFO_LAYOUT_SWITCHABLE   carry both tables and let the running
+//                                    firmware change layout (physical keyboards
+//                                    only; the on-screen grid has no Eten form)
 //
 //  Cardputer note:
 //    Key 44 produces '_' (tap[0]) and '-' (tap[1]/Shift) on the
@@ -187,21 +190,50 @@ inline const int8_t KEYMAP_YITIAN[94] = {
    -1,  -1,  -1,  -1,                                  // 0x7B-0x7E
 };
 
-// ── Active key map (compile-time) ────────────────────────────────
+// ── Active key map ───────────────────────────────────────────────
+enum Layout : uint8_t { LAYOUT_DAQIAN = 0, LAYOUT_YITIAN = 1 };
+
 #if defined(BOPOMOFO_LAYOUT_YITIAN)
-inline const int8_t *const KEYMAP = KEYMAP_YITIAN;
-inline const char LAYOUT_NAME[] = "Eten(ET41)";
+inline constexpr Layout DEFAULT_LAYOUT = LAYOUT_YITIAN;
 #else
-inline const int8_t *const KEYMAP = KEYMAP_DAQIAN;
-inline const char LAYOUT_NAME[] = "Daqian26";
+inline constexpr Layout DEFAULT_LAYOUT = LAYOUT_DAQIAN;
 #endif
 
+#if defined(BOPOMOFO_LAYOUT_SWITCHABLE)
+inline constexpr bool LAYOUT_SWITCHABLE = true;
+#else
+inline constexpr bool LAYOUT_SWITCHABLE = false;
+#endif
+
+// Only a switchable build names both tables, so a build that settled on one
+// layout links one table and keeps the size it had before layouts became a
+// runtime choice.
+inline const int8_t *layout_keymap(Layout layout)
+{
+#if defined(BOPOMOFO_LAYOUT_SWITCHABLE)
+    return layout == LAYOUT_YITIAN ? KEYMAP_YITIAN : KEYMAP_DAQIAN;
+#elif defined(BOPOMOFO_LAYOUT_YITIAN)
+    (void)layout;
+    return KEYMAP_YITIAN;
+#else
+    (void)layout;
+    return KEYMAP_DAQIAN;
+#endif
+}
+
+// For the IME status bar. Two Hanzi rather than a Latin name so it still fits
+// the 128 px panels; both are in the MOE common set that every font here covers.
+inline const char *layout_name(Layout layout)
+{
+    return layout == LAYOUT_YITIAN ? "倚天" : "大千";
+}
+
 // ── Key lookup ───────────────────────────────────────────────────
-inline const Symbol *lookup_key(char ascii)
+inline const Symbol *lookup_key(char ascii, Layout layout = DEFAULT_LAYOUT)
 {
     int idx = (uint8_t)ascii - 0x21;
     if (idx < 0 || idx >= 94) return nullptr;
-    int8_t sym_idx = KEYMAP[idx];
+    int8_t sym_idx = layout_keymap(layout)[idx];
     if (sym_idx == KEY_NONE) return nullptr;
     return &SYMS[sym_idx];
 }
@@ -273,9 +305,9 @@ class Composer
     // Returns true if a syllable was just closed (tone entered).
     // Returns false if the key has no Bopomofo mapping (caller may
     // treat it as English pass-through).
-    bool addKey(char ascii)
+    bool addKey(char ascii, Layout layout = DEFAULT_LAYOUT)
     {
-        const Symbol *sym = lookup_key(ascii);
+        const Symbol *sym = lookup_key(ascii, layout);
         if (!sym) return false;
         return addSymbol(*sym);
     }

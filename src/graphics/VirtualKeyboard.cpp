@@ -65,9 +65,25 @@ VirtualKeyboard::VirtualKeyboard() : cursorRow(0), cursorCol(0), lastActivityTim
 #if defined(GAT562_T9_KEYBOARD)
     candidateCursor = 0;
 #endif
+#if defined(CJK_IME_ZHUYIN)
+    // The keyboard is built when the text input opens and destroyed when it closes,
+    // so this pair of calls is once per editing session rather than per keystroke.
+    storedPrefs_ = bpmf::loadPrefs();
+    IMEStatus = storedPrefs_.chinese ? ACTIVE : INACTIVE;
+#endif
 }
 
-VirtualKeyboard::~VirtualKeyboard() {}
+VirtualKeyboard::~VirtualKeyboard()
+{
+#if defined(CJK_IME_ZHUYIN)
+    // Start from what was read so the layout bit, which belongs to the physical
+    // keyboard front end, survives a session on a board that cannot change it.
+    bpmf::Prefs current = storedPrefs_;
+    current.chinese = (IMEStatus == ACTIVE);
+    if (current != storedPrefs_)
+        bpmf::savePrefs(current);
+#endif
+}
 
 void VirtualKeyboard::initializeKeyboard()
 {

@@ -15,10 +15,43 @@
 namespace graphics
 {
 
+// Longest prefix of s that fits maxW, cut on a UTF-8 boundary. Measuring has to
+// go through the three-argument getStringWidth: the two-argument one treats the
+// bytes as Latin-1 and a CJK glyph would come out three characters wide.
+static std::string fitToWidth(OLEDDisplay *display, const std::string &s, int16_t maxW)
+{
+    if (maxW <= 0)
+        return std::string();
+    if (display->getStringWidth(s.c_str(), s.size(), true) <= (uint16_t)maxW)
+        return s;
+
+    std::string fitted;
+    for (size_t i = 0; i < s.size();) {
+        uint8_t b = (uint8_t)s[i];
+        size_t charLen = (b < 0x80) ? 1 : (b < 0xE0) ? 2 : (b < 0xF0) ? 3 : 4;
+        std::string candidate = fitted + s.substr(i, charLen);
+        if (display->getStringWidth(candidate.c_str(), candidate.size(), true) > (uint16_t)maxW)
+            break;
+        fitted = candidate;
+        i += charLen;
+    }
+    return fitted;
+}
+
 BopomofoInputModule::BopomofoInputModule()
 {
     // Base class VirtualKeyboard() constructor is called automatically.
     // Timeout is managed by the inherited lastActivityTime / resetTimeout().
+    storedPrefs_ = bpmf::loadPrefs();
+    chineseMode_ = storedPrefs_.chinese;
+    engine_.setLayout(storedPrefs_.layout);
+}
+
+BopomofoInputModule::~BopomofoInputModule()
+{
+    bpmf::Prefs current{engine_.layout(), chineseMode_};
+    if (current != storedPrefs_)
+        bpmf::savePrefs(current);
 }
 
 // ── Core IME helpers ────────────────────────────────────────────────────────
@@ -84,6 +117,17 @@ bool BopomofoInputModule::handleKeyChar(char c)
         return true;
     }
 
+    // ── Ctrl+B / fn+b (0x03): switch Bopomofo keyboard layout ────────────
+    // Same sentinel arrangement as 0x02 above. Latin mode swallows the key
+    // without acting on it: which Bopomofo layout is selected says nothing
+    // about how a Latin keystroke is read, so there would be no visible effect
+    // to justify one.
+    if (uc == 0x03) {
+        if (chineseMode_)
+            toggleLayout();
+        return true;
+    }
+
     // ── ESC: clear composition or cancel ──────────────────────────────────
     if (uc == 0x1B) {
         if (engine_.composing()) {
@@ -136,7 +180,7 @@ bool BopomofoInputModule::handleKeyChar(char c)
 
     // Printable ASCII: try as Bopomofo key
     if (uc >= 0x21 && uc < 0x7F) {
-        if (const bpmf::Symbol *sym = bpmf::lookup_key(c)) {
+        if (const bpmf::Symbol *sym = engine_.mapKey(c)) {
             // Candidates are refreshed on every symbol, so whether this one
             // closed the syllable makes no difference here - a tone is just
             // another symbol.
@@ -202,6 +246,19 @@ void BopomofoInputModule::toggleIME()
     }
 }
 
+void BopomofoInputModule::toggleLayout()
+{
+    resetTimeout();
+    if (!bpmf::LAYOUT_SWITCHABLE)
+        return;
+    engine_.setLayout(engine_.layout() == bpmf::LAYOUT_YITIAN ? bpmf::LAYOUT_DAQIAN : bpmf::LAYOUT_YITIAN);
+    // The composition holds symbols rather than keystrokes, so it would survive
+    // the switch intact - it is dropped anyway, because half a syllable typed on
+    // one layout and finished on another is not what the user meant to compose.
+    engine_.clearComposition();
+    candidateIdx_ = 0;
+}
+
 // ── Draw ─────────────────────────────────────────────────────────────────────
 
 void BopomofoInputModule::draw(OLEDDisplay *display, int16_t /*offsetX*/, int16_t /*offsetY*/)
@@ -231,16 +288,18 @@ void BopomofoInputModule::draw(OLEDDisplay *display, int16_t /*offsetX*/, int16_
     int16_t yComp   = ySep2 + 1;
     int16_t ySep3   = yComp + fh;
     int16_t yCand   = ySep3 + 1;
-    int16_t yStatus = yCand + fh + 1;
 
     display->setColor(WHITE);
 
-    // Header
+    // Header row, with the mode indicator at its right end. The header is cut to
+    // whatever the indicator leaves, so a long destination cannot run into it.
     display->setFont(FONT_SMALL);
+    uint16_t statusW = drawStatusBar(display, W - 2, yHeader);
+
     display->setTextAlignment(TEXT_ALIGN_LEFT);
     std::string hdr = getHeader();
     if (!hdr.empty())
-        display->drawString(2, yHeader, hdr.c_str());
+        display->drawString(2, yHeader, fitToWidth(display, hdr, W - 6 - (int16_t)statusW).c_str());
 
     // Separator 1
     display->drawHorizontalLine(0, ySep1, W);
@@ -259,10 +318,6 @@ void BopomofoInputModule::draw(OLEDDisplay *display, int16_t /*offsetX*/, int16_
 
     // Candidate bar
     drawCandidateBar(display, 2, yCand, W - 4, fh);
-
-    // Status bar
-    if (yStatus < H)
-        drawStatusBar(display, 0, yStatus, W, H - yStatus);
 }
 
 // ── Draw helpers ──────────────────────────────────────────────────────────────
@@ -380,18 +435,21 @@ void BopomofoInputModule::drawCandidateBar(OLEDDisplay *display, int16_t x, int1
     }
 }
 
-void BopomofoInputModule::drawStatusBar(OLEDDisplay *display, int16_t x, int16_t y, int16_t w, int16_t /*h*/)
+uint16_t BopomofoInputModule::drawStatusBar(OLEDDisplay *display, int16_t rightX, int16_t y)
 {
     display->setFont(FONT_SMALL);
-    display->setTextAlignment(TEXT_ALIGN_RIGHT);
 
-    const char *layoutName = bpmf::LAYOUT_NAME; // "Daqian26" or "Eten(ET41)"
+    // "EN", "TW/大千" or "TW/倚天". The layout is named only in Bopomofo mode,
+    // where it is the thing that decides what a key produces.
     std::string statusStr = chineseMode_
-        ? (std::string("CH/") + layoutName)
+        ? (std::string("TW/") + bpmf::layout_name(engine_.layout()))
         : "EN";
 
-    display->drawString((int16_t)(x + w - 2), y, statusStr.c_str());
+    display->setTextAlignment(TEXT_ALIGN_RIGHT);
+    display->drawString(rightX, y, statusStr.c_str());
     display->setTextAlignment(TEXT_ALIGN_LEFT);
+
+    return display->getStringWidth(statusStr.c_str(), statusStr.size(), true);
 }
 
 } // namespace graphics

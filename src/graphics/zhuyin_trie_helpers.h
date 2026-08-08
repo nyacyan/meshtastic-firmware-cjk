@@ -447,9 +447,22 @@ inline std::vector<std::string> unified_search(const std::string &input, int max
     // Float candidates whose reading matches the typed tone ahead of the rest,
     // preserving frequency order within each group (stable). A tone that matches
     // nothing still shows every same-syllable candidate - tone narrows, never hides.
-    if (wantTone)
+    //
+    // Two passes, leaving three bands: tone-matched single characters, tone-matched
+    // words, everything else. Single characters come first because a tone keystroke
+    // is the user narrowing to one reading of one character, and because the stored
+    // tone is that of a word's *last* syllable - for a single character that is the
+    // syllable being typed, while for a word it is one the user may not have typed
+    // at all (毫不 matches a typed ㄏㄠˋ on the tone of ㄅㄨˋ). The words still earn
+    // the second band: 你好 and 我想 do begin with what was typed, and pushing them
+    // behind 你 and 我 rather than dropping them keeps them one keystroke away.
+    if (wantTone) {
         std::stable_partition(cands.begin(), cands.end(),
                               [&](const Cand &c) { return (c.tone & wantTone) != 0; });
+        std::stable_partition(cands.begin(), cands.end(), [&](const Cand &c) {
+            return (c.tone & wantTone) != 0 && char_count(c.surface) == 1;
+        });
+    }
     noTone = (wantTone == 0);
 #endif
 
