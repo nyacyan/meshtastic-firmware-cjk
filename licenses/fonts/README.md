@@ -39,8 +39,9 @@ Ark Pixel, Boutique Bitmap 9x9 and Galmuri.
 ## traditional_chinese_utf8_16x16.h
 
 Generated from Noto Sans CJK (SIL OFL 1.1, `LICENSE-noto-sans-cjk.txt`) and, for
-the emoji it carries, Noto Emoji (SIL OFL 1.1, same terms). Used by
-`m5stack-cardputer-adv_zhtw`, which repeats these terms in its own file comment.
+the emoji it carries, Noto Emoji (SIL OFL 1.1, same terms). Used by the
+`m5stack-cardputer-adv_zhtw` and `heltec-wireless-paper_zhtw` environments, and
+the header repeats these terms in its own file comment.
 
 ## src/graphics/emotes_tw_16x16.h
 

@@ -29,6 +29,7 @@ jobs:
           - gat562_family_zhtw
           - seeed_wio_tracker_L1_zhtw
           - heltec-v3_zhtw
+          - heltec-wireless-paper_zhtw
           - m5stack-cardputer-adv_zhtw
           - nrf52_promicro_diy_tcxo_zhtw
           - nrf52_promicro_diy_tcxo_ime_zhtw
@@ -36,6 +37,7 @@ jobs:
           - gat562_mesh_trial_tracker
           - seeed_wio_tracker_L1
           - heltec-v3
+          - heltec-wireless-paper
           - m5stack-cardputer-adv
           - nrf52_promicro_diy_tcxo
 
