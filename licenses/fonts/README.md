@@ -19,8 +19,9 @@ its own to reproduce here.
 ## traditional_chinese_utf8_10x10.h
 
 Used through `OLED_CJK_CUSTOM` by the `gat562_family_zhtw`,
-`seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw` environments. Each codepoint
-comes from the first source in the chain that covers it.
+`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw` and the three
+`nrf52_promicro_diy_tcxo*_zhtw` environments. Each codepoint comes from the first
+source in the chain that covers it.
 
 | Source | Role | Terms | File |
 |------|------|-------|------|
@@ -40,8 +41,9 @@ Ark Pixel, Boutique Bitmap 9x9 and Galmuri.
 
 Generated from Noto Sans CJK (SIL OFL 1.1, `LICENSE-noto-sans-cjk.txt`) and, for
 the emoji it carries, Noto Emoji (SIL OFL 1.1, same terms). Used by the
-`m5stack-cardputer-adv_zhtw` and `heltec-wireless-paper_zhtw` environments, and
-the header repeats these terms in its own file comment.
+`m5stack-cardputer-adv_zhtw`, `heltec-wireless-paper_zhtw` and
+`heltec-mesh-node-t114_zhtw` environments, and the header repeats these terms in
+its own file comment.
 
 ## src/graphics/emotes_tw_16x16.h
 
@@ -66,7 +68,8 @@ which Unifont renders as two boxed letters rather than one glyph.
 ## src/graphics/emotes_tw_10x10.h
 
 Emoji bitmaps for the `EMOTES_TW_10X10` build flag, used by `gat562_family_zhtw`,
-`seeed_wio_tracker_L1_zhtw` and `heltec-v3_zhtw`. **No third-party font is
+`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw` and the three
+`nrf52_promicro_diy_tcxo*_zhtw` environments. **No third-party font is
 involved.**
 All 90 entries are hand-designed for this project, because no bitmap emoji font
 exists at this size - Unifont stops at 16x16 and downscaling destroys the
