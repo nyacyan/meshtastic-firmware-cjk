@@ -2,7 +2,7 @@
 
 This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware),
 based on release `v2.7.26.54e0d8d`. It adds Traditional Chinese text rendering and a
-Bopomofo (zhuyin) input method to nine boards, and nothing else: every stock
+Bopomofo (zhuyin) input method to ten boards, and nothing else: every stock
 environment is left exactly as upstream ships it.
 
 It is **not affiliated with or endorsed by the Meshtastic project**. Meshtastic® is a
@@ -14,6 +14,7 @@ reporting anything upstream.
 | --- | --- | --- |
 | `gat562_family_zhtw` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
 | `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
+| `seeed_wio_tracker_L1_eink_zhtw` | Seeed Wio Tracker L1 E-Ink | display only |
 | `heltec-v3_zhtw` | Heltec LoRa32 V3 | display only |
 | `heltec-wireless-paper_zhtw` | Heltec Wireless Paper (V1.1 and later) | display only |
 | `heltec-mesh-node-t114_zhtw` | Heltec Mesh Node T114 | display only |
@@ -66,7 +67,7 @@ behave in ways you do not expect. Use them at your own risk.**
 ## 繁體中文韌體（非官方）
 
 這是 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d`
-的非官方衍生版本，替九款機種加上繁體中文顯示與注音輸入法，其餘一律不動：所有原廠
+的非官方衍生版本，替十款機種加上繁體中文顯示與注音輸入法，其餘一律不動：所有原廠
 env 都與上游完全相同。
 
 本專案與 Meshtastic 官方專案無隸屬關係，亦未經其背書。Meshtastic® 為 Meshtastic LLC

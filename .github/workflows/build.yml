@@ -28,6 +28,7 @@ jobs:
         pio_env:
           - gat562_family_zhtw
           - seeed_wio_tracker_L1_zhtw
+          - seeed_wio_tracker_L1_eink_zhtw
           - heltec-v3_zhtw
           - heltec-wireless-paper_zhtw
           - heltec-mesh-node-t114_zhtw
@@ -39,6 +40,7 @@ jobs:
           - nrf52_promicro_diy_tcxo_kb_zhtw
           - gat562_mesh_trial_tracker
           - seeed_wio_tracker_L1
+          - seeed_wio_tracker_L1_eink
           - heltec-v3
           - heltec-wireless-paper
           - heltec-mesh-node-t114

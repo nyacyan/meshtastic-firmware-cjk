@@ -42,9 +42,9 @@ Ark Pixel, Boutique Bitmap 9x9 and Galmuri.
 
 Generated from Noto Sans CJK (SIL OFL 1.1, `LICENSE-noto-sans-cjk.txt`) and, for
 the emoji it carries, Noto Emoji (SIL OFL 1.1, same terms). Used by the
-`m5stack-cardputer-adv_zhtw`, `heltec-wireless-paper_zhtw` and
-`heltec-mesh-node-t114_zhtw` environments, and the header repeats these terms in
-its own file comment.
+`m5stack-cardputer-adv_zhtw`, `heltec-wireless-paper_zhtw`,
+`heltec-mesh-node-t114_zhtw` and `seeed_wio_tracker_L1_eink_zhtw` environments,
+and the header repeats these terms in its own file comment.
 
 ## src/graphics/emotes_tw_16x16.h
 
