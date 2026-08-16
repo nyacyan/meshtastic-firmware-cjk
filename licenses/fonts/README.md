@@ -19,9 +19,10 @@ its own to reproduce here.
 ## traditional_chinese_utf8_10x10.h
 
 Used through `OLED_CJK_CUSTOM` by the `gat562_family_zhtw`,
-`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw` and the three
-`nrf52_promicro_diy_tcxo*_zhtw` environments. Each codepoint comes from the first
-source in the chain that covers it.
+`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw`, `heltec-v4_zhtw`,
+`heltec-v4-r8-oled_zhtw` and the three `nrf52_promicro_diy_tcxo*_zhtw`
+environments. Each codepoint comes from the first source in the chain that
+covers it.
 
 | Source | Role | Terms | File |
 |------|------|-------|------|
@@ -68,9 +69,9 @@ which Unifont renders as two boxed letters rather than one glyph.
 ## src/graphics/emotes_tw_10x10.h
 
 Emoji bitmaps for the `EMOTES_TW_10X10` build flag, used by `gat562_family_zhtw`,
-`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw` and the three
-`nrf52_promicro_diy_tcxo*_zhtw` environments. **No third-party font is
-involved.**
+`seeed_wio_tracker_L1_zhtw`, `heltec-v3_zhtw`, `heltec-v4_zhtw`,
+`heltec-v4-r8-oled_zhtw` and the three `nrf52_promicro_diy_tcxo*_zhtw`
+environments. **No third-party font is involved.**
 All 90 entries are hand-designed for this project, because no bitmap emoji font
 exists at this size - Unifont stops at 16x16 and downscaling destroys the
 pixel-grid alignment that makes a bitmap font legible. The 90 entries share 85

@@ -31,6 +31,8 @@ jobs:
           - heltec-v3_zhtw
           - heltec-wireless-paper_zhtw
           - heltec-mesh-node-t114_zhtw
+          - heltec-v4_zhtw
+          - heltec-v4-r8-oled_zhtw
           - m5stack-cardputer-adv_zhtw
           - nrf52_promicro_diy_tcxo_zhtw
           - nrf52_promicro_diy_tcxo_ime_zhtw
@@ -40,6 +42,8 @@ jobs:
           - heltec-v3
           - heltec-wireless-paper
           - heltec-mesh-node-t114
+          - heltec-v4
+          - heltec-v4-r8-oled
           - m5stack-cardputer-adv
           - nrf52_promicro_diy_tcxo
 
