@@ -14,7 +14,7 @@ reporting anything upstream.
 | --- | --- | --- |
 | `gat562_family_zhtw` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
 | `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
-| `seeed_wio_tracker_L1_eink_zhtw` | Seeed Wio Tracker L1 E-Ink | display only |
+| `seeed_wio_tracker_L1_eink_zhtw` | Seeed Wio Tracker L1 E-Ink | Bopomofo on the on-screen keyboard |
 | `heltec-v3_zhtw` | Heltec LoRa32 V3 | display only |
 | `heltec-wireless-paper_zhtw` | Heltec Wireless Paper (V1.1 and later) | display only |
 | `heltec-mesh-node-t114_zhtw` | Heltec Mesh Node T114 | display only |

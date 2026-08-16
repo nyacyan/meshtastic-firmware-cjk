@@ -5,6 +5,7 @@
 #include "NodeDB.h"
 #include "NotificationRenderer.h"
 #include "UIRenderer.h"
+#include "graphics/EInkDynamicDisplay.h" // To select between full and fast refresh on E-Ink displays
 #include "graphics/ScreenFonts.h"
 #include "graphics/SharedUIDisplay.h"
 #include "graphics/images.h"
@@ -737,6 +738,17 @@ void NotificationRenderer::drawFrameFirmware(OLEDDisplay *display, OLEDDisplayUi
 void NotificationRenderer::drawTextInput(OLEDDisplay *display, OLEDDisplayUiState *state)
 {
     if (virtualKeyboard) {
+#if defined(USE_EINK) && defined(USE_EINK_DYNAMICDISPLAY)
+        // Both flags have to be set on every pass: storeAndReset() clears frameFlags once
+        // the frame is out. DEMAND_FAST gets past the rate limit that would otherwise hold
+        // a keystroke back for a second, and UNLIMITED_FAST gets past the consecutive
+        // fast-refresh cap, which would drop a full refresh in the middle of a word.
+        // Ghosting is what this trades away; fastRefreshCount keeps counting regardless of
+        // the flag, so the first frame drawn after the keyboard closes clears it.
+        EInkDynamicDisplay *einkDisplay = static_cast<EInkDynamicDisplay *>(display);
+        einkDisplay->enableUnlimitedFastMode();
+        EINK_ADD_FRAMEFLAG(display, DEMAND_FAST);
+#endif
         // Check for timeout and auto-exit if needed
         if (virtualKeyboard->isTimedOut()) {
             LOG_INFO("Virtual keyboard timeout - auto-exiting");
