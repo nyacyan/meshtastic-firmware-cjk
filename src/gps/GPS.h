@@ -23,7 +23,7 @@
 #define GPS_STANDBY_ACTIVE LOW
 #endif
 
-static constexpr uint32_t GPS_UPDATE_ALWAYS_ON_THRESHOLD_MS = 10 * 1000UL;
+static constexpr uint32_t GPS_UPDATE_ALWAYS_ON_THRESHOLD_MS = 30 * 1000UL;
 static constexpr uint32_t GPS_FIX_HOLD_MAX_MS = 20000;
 
 typedef enum {
@@ -127,6 +127,9 @@ class GPS : private concurrency::OSThread
 
     // Let the GPS hardware save power between updates
     void down();
+
+    // Inject A-GPS aiding data (position and time) into u-blox hardware to accelerate cold start
+    void injectAid(int32_t lat_i, int32_t lon_i, int32_t alt_m = 0, uint32_t epoch_sec = 0);
 
   private:
     GPS() : concurrency::OSThread("GPS") {}

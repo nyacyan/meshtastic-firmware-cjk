@@ -664,14 +664,13 @@ bool GPS::setup()
             SEND_UBX_PACKET(0x06, 0x08, _message_1HZ, "set GPS update rate", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_GLL, "disable NMEA GLL", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_GSA, "enable NMEA GSA", 500);
-            SEND_UBX_PACKET(0x06, 0x01, _message_GSV, "disable NMEA GSV", 500);
+            SEND_UBX_PACKET(0x06, 0x01, _message_GSV_ON, "enable NMEA GSV", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_VTG, "disable NMEA VTG", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_RMC, "enable NMEA RMC", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_GGA, "enable NMEA GGA", 500);
 
             clearBuffer();
-            SEND_UBX_PACKET(0x06, 0x11, _message_CFG_RXM_ECO, "enable powersave ECO mode for Neo-6", 500);
-            SEND_UBX_PACKET(0x06, 0x3B, _message_CFG_PM2, "enable powersave details for GPS", 500);
+            SEND_UBX_PACKET(0x06, 0x11, _message_CFG_RXM_MAX_PERF, "enable max performance continuous mode for Neo-6", 500);
             SEND_UBX_PACKET(0x06, 0x01, _message_AID, "disable UBX-AID", 500);
 
             msglen = makeUBXPacket(0x06, 0x09, sizeof(_message_SAVE), _message_SAVE);
@@ -681,6 +680,17 @@ bool GPS::setup()
             } else {
                 LOG_INFO("GNSS module config saved!");
             }
+            // Seed initial A-GPS aiding data dynamically from nodeDB or RTC if available
+            int32_t initLat = 0, initLon = 0, initAlt = 0;
+            if (nodeDB) {
+                auto *info = nodeDB->getMeshNode(nodeDB->getNodeNum());
+                if (info && info->has_position && (info->position.latitude_i != 0 || info->position.longitude_i != 0)) {
+                    initLat = info->position.latitude_i;
+                    initLon = info->position.longitude_i;
+                    initAlt = info->position.altitude;
+                }
+            }
+            injectAid(initLat, initLon, initAlt, getTime());
         } else if (IS_ONE_OF(gnssModel, GNSS_MODEL_UBLOX7, GNSS_MODEL_UBLOX8, GNSS_MODEL_UBLOX9)) {
             if (gnssModel == GNSS_MODEL_UBLOX7) {
                 LOG_DEBUG("Set GPS+SBAS");
@@ -1023,7 +1033,7 @@ void GPS::up()
 // We've finished a GPS search cycle (lock or timeout). Enter a low power state, potentially.
 void GPS::down()
 {
-    if (hasValidLocation)
+    if (scheduling.hasValidFixSinceSearchStarted() || hasValidLocation)
         scheduling.informGotLock();
     else
         scheduling.informSearchFailed();
@@ -1142,6 +1152,27 @@ int32_t GPS::runOnce()
     uint8_t prev_fixQual = fixQual;
 
     if (powerState == GPS_ACTIVE) {
+        // Periodically inject A-GPS aiding data (position + GPS week/TOW) once valid RTC time is available
+        static uint32_t lastAidInjectionMs = 0;
+        if (!hasValidLocation && !Throttle::isWithinTimespanMs(lastAidInjectionMs, 60000)) {
+            uint32_t nowEpoch = getTime();
+            if (nowEpoch > 1577836800) {
+                lastAidInjectionMs = millis();
+                int32_t lat = 0;
+                int32_t lon = 0;
+                int32_t alt = 0;
+                if (nodeDB) {
+                    auto *info = nodeDB->getMeshNode(nodeDB->getNodeNum());
+                    if (info && info->has_position && (info->position.latitude_i != 0 || info->position.longitude_i != 0)) {
+                        lat = info->position.latitude_i;
+                        lon = info->position.longitude_i;
+                        alt = info->position.altitude;
+                    }
+                }
+                injectAid(lat, lon, alt, nowEpoch);
+            }
+        }
+
         // if gps_update_interval is <=10s, GPS never goes off, so we treat that differently
         uint32_t updateInterval = Default::getConfiguredOrDefaultMs(config.position.gps_update_interval);
 
@@ -1153,6 +1184,7 @@ int32_t GPS::runOnce()
         // 2. Got a lock for the first time, or 3. Got a lock after turning back on
         bool gotLoc = lookForLocation();
         if (gotLoc) {
+            scheduling.informValidFix();
 #ifdef GPS_DEBUG
             if (!hasValidLocation) { // declare that we have location ASAP
                 LOG_DEBUG("hasValidLocation RISING EDGE");
@@ -1175,7 +1207,7 @@ int32_t GPS::runOnce()
         }
 
         bool tooLong = scheduling.searchedTooLong();
-        if (tooLong && !gotLoc) {
+        if (tooLong && !scheduling.hasValidFixSinceSearchStarted()) {
             LOG_WARN("Couldn't publish a valid location: didn't get a GPS lock in time");
             // we didn't get a location during this ack window, therefore declare loss of lock
             if (hasValidLocation) {
@@ -1851,7 +1883,7 @@ bool GPS::whileActive()
     unsigned int charsInBuf = 0;
     bool isValid = false;
 #ifdef GPS_DEBUG
-    std::string debugmsg = "";
+    static std::string nmeaSentence = "";
 #endif
     if (powerState != GPS_ACTIVE) {
         clearBuffer();
@@ -1868,7 +1900,14 @@ bool GPS::whileActive()
         int c = _serial_gps->read();
         UBXscratch[charsInBuf] = c;
 #ifdef GPS_DEBUG
-        debugmsg += vformat("%c", (c >= 32 && c <= 126) ? c : '.');
+        if (c == '\n') {
+            if (!nmeaSentence.empty()) {
+                LOG_INFO("[NMEA] %s", nmeaSentence.c_str());
+                nmeaSentence.clear();
+            }
+        } else if (c != '\r' && c >= 32 && c <= 126) {
+            nmeaSentence += (char)c;
+        }
 #endif
         isValid |= reader.encode(c);
         if (charsInBuf > sizeof(UBXscratch) - 10 || c == '\r') {
@@ -1880,11 +1919,6 @@ bool GPS::whileActive()
             charsInBuf++;
         }
     }
-#ifdef GPS_DEBUG
-    if (debugmsg != "") {
-        LOG_DEBUG(debugmsg.c_str());
-    }
-#endif
     return isValid;
 }
 void GPS::enable()
@@ -1927,5 +1961,67 @@ void GPS::toggleGpsMode()
         playGPSEnableBeep();
         enable();
     }
+}
+
+void GPS::injectAid(int32_t lat_i, int32_t lon_i, int32_t alt_m, uint32_t epoch_sec)
+{
+    if (!IS_ONE_OF(gnssModel, GNSS_MODEL_UBLOX6, GNSS_MODEL_UBLOX7, GNSS_MODEL_UBLOX8, GNSS_MODEL_UBLOX9, GNSS_MODEL_UBLOX10))
+        return;
+    if (!_serial_gps || hasValidLocation)
+        return;
+
+    bool hasPos = (lat_i != 0 || lon_i != 0);
+    bool hasTime = (epoch_sec > 1577836800);
+    if (!hasPos && !hasTime)
+        return;
+
+    LOG_INFO("Injecting A-GPS aiding data to u-blox: lat=%d, lon=%d, alt=%d, time=%u", lat_i, lon_i, alt_m, epoch_sec);
+
+    uint8_t payload[48];
+    memset(payload, 0, sizeof(payload));
+    uint32_t flags = 0;
+
+    if (hasPos) {
+        // Lat, Lon in degrees * 1e7, Alt in cm
+        memcpy(&payload[0], &lat_i, 4);
+        memcpy(&payload[4], &lon_i, 4);
+        int32_t alt_cm = alt_m * 100;
+        memcpy(&payload[8], &alt_cm, 4);
+
+        // posAcc: 100km (10,000,000 cm) - informs chip this is an approximate regional seed
+        uint32_t posAcc = 10000000;
+        memcpy(&payload[12], &posAcc, 4);
+
+        flags |= 0x21; // pos valid (bit 0) + LLA format (bit 5)
+    }
+
+    if (hasTime) {
+        int64_t gps_sec = (int64_t)epoch_sec - 315964800LL + 18LL; // GPS epoch diff + leap seconds
+        uint16_t wn = gps_sec / 604800;
+        uint32_t tow = (gps_sec % 604800) * 1000;
+        uint16_t tmCfg = 0x0000; // software time aiding (no extint hardware marker)
+        uint32_t tAccMs = 5000;  // 5 seconds accuracy
+
+        memcpy(&payload[16], &tmCfg, 2);
+        memcpy(&payload[18], &wn, 2);
+        memcpy(&payload[20], &tow, 4);
+        memcpy(&payload[28], &tAccMs, 4);
+
+        flags |= 0x02; // time valid (bit 1)
+    }
+    memcpy(&payload[44], &flags, 4);
+
+    uint8_t packet[56];
+    packet[0] = 0xB5;
+    packet[1] = 0x62;
+    packet[2] = 0x0B; // UBX-AID class
+    packet[3] = 0x01; // UBX-AID-INI id
+    packet[4] = 48;   // payload length low
+    packet[5] = 0x00; // payload length high
+    memcpy(&packet[6], payload, 48);
+    UBXChecksum(packet, 56);
+
+    _serial_gps->write(packet, 56);
+    LOG_INFO("UBX-AID-INI sent to u-blox GNSS receiver successfully (flags=0x%02X)", flags);
 }
 #endif // Exclude GPS

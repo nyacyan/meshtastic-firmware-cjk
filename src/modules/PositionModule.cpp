@@ -84,6 +84,9 @@ bool PositionModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, mes
         } else {
             LOG_DEBUG("Incoming update from MYSELF");
             nodeDB->setLocalPosition(p);
+            if (gps && p.latitude_i != 0 && p.longitude_i != 0) {
+                gps->injectAid(p.latitude_i, p.longitude_i, p.altitude, p.time);
+            }
         }
     }
 

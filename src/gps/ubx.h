@@ -29,6 +29,12 @@ static const uint8_t _message_CFG_RXM_PSM[] PROGMEM = {
     0x01  // Power save mode
 };
 
+// continuous max performance for Neo-6
+static const uint8_t _message_CFG_RXM_MAX_PERF[] PROGMEM = {
+    0x08, // Reserved
+    0x00  // continuous / max performance mode
+};
+
 // only for Neo-6
 static const uint8_t _message_CFG_RXM_ECO[] PROGMEM = {
     0x08, // Reserved
@@ -234,6 +240,17 @@ static const uint8_t _message_GSV[] = {
     0xF0, 0x03, // NMEA ID for GSV
     0x00,       // Rate for DDC
     0x00,       // Rate for UART1
+    0x00,       // Rate for UART2
+    0x00,       // Rate for USB
+    0x00,       // Rate for SPI
+    0x00        // Reserved
+};
+
+// Enable GSV on UART1.
+static const uint8_t _message_GSV_ON[] = {
+    0xF0, 0x03, // NMEA ID for GSV
+    0x00,       // Rate for DDC
+    0x01,       // Rate for UART1 (1 = every epoch)
     0x00,       // Rate for UART2
     0x00,       // Rate for USB
     0x00,       // Rate for SPI

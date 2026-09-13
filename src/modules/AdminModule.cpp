@@ -440,12 +440,28 @@ bool AdminModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, meshta
         break;
     }
     case meshtastic_AdminMessage_set_time_only_tag: {
-        LOG_INFO("Client received set_time_only command");
+        LOG_INFO("Client received set_time_only command: %u", r->set_time_only);
         struct timeval tv;
         tv.tv_sec = r->set_time_only;
         tv.tv_usec = 0;
 
         perhapsSetRTC(RTCQualityNTP, &tv, false);
+#if !MESHTASTIC_EXCLUDE_GPS
+        if (gps) {
+            int32_t lat = 0;
+            int32_t lon = 0;
+            int32_t alt = 0;
+            if (nodeDB) {
+                auto *info = nodeDB->getMeshNode(nodeDB->getNodeNum());
+                if (info && info->has_position && (info->position.latitude_i != 0 || info->position.longitude_i != 0)) {
+                    lat = info->position.latitude_i;
+                    lon = info->position.longitude_i;
+                    alt = info->position.altitude;
+                }
+            }
+            gps->injectAid(lat, lon, alt, r->set_time_only);
+        }
+#endif
         break;
     }
     case meshtastic_AdminMessage_enter_dfu_mode_request_tag: {

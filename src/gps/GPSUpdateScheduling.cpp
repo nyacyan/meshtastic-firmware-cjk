@@ -6,6 +6,17 @@
 void GPSUpdateScheduling::informSearching()
 {
     searchStartedMs = millis();
+    validFixReceived = false;
+}
+
+void GPSUpdateScheduling::informValidFix()
+{
+    validFixReceived = true;
+}
+
+bool GPSUpdateScheduling::hasValidFixSinceSearchStarted() const
+{
+    return validFixReceived;
 }
 
 // Mark the time when searching for GPS is complete,
@@ -39,6 +50,7 @@ void GPSUpdateScheduling::reset()
     searchCount = 0;
     predictedMsToGetLock = 0;
     consecutiveFailures = 0;
+    validFixReceived = false;
 }
 
 // How many milliseconds before we should next search for GPS position
@@ -50,12 +62,10 @@ uint32_t GPSUpdateScheduling::msUntilNextSearch()
     // Target interval (seconds), between GPS updates
     uint32_t updateInterval = Default::getConfiguredOrDefaultMs(config.position.gps_update_interval, default_gps_update_interval);
 
-    // After a failed search, back off: indoors / no-sky environments will keep failing,
-    // so wake at most once per broadcast interval rather than once per gps_update_interval.
-    // Capped at 1 hour so a user-configured very-long broadcast interval still retries
-    // periodically (in case conditions change). Reset on any successful lock.
+    // After a failed search, cap retry sleep at 2 minutes instead of 1 hour,
+    // so indoor/obscured nodes don't stay dead for 60 minutes.
     if (consecutiveFailures > 0) {
-        constexpr uint32_t failureRetryCapMs = 60UL * 60UL * 1000UL; // 1 hour cap
+        constexpr uint32_t failureRetryCapMs = 120UL * 1000UL; // 2 minutes cap
         uint32_t failureSleepMs =
             Default::getConfiguredOrDefaultMs(config.position.position_broadcast_secs, default_broadcast_interval_secs);
         if (failureSleepMs > failureRetryCapMs)
