@@ -1,8 +1,9 @@
 # Meshtastic Firmware with CJK Display Support (Unofficial)
 
-This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware),
-based on release `v2.7.26.54e0d8d`. It adds CJK (Traditional & Simplified Chinese via GB2312)
-glyph rendering and optional Bopomofo input method, plus LilyGO T-Beam GPS enhancements:
+This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware)
+based on release `v2.7.26.54e0d8d`, building upon the pioneering work of [Kent-Liu/meshtastic-firmware-zhtw](https://github.com/Kent-Liu/meshtastic-firmware-zhtw).
+It adds CJK (Traditional & Simplified Chinese via GB2312) glyph rendering and optional Bopomofo input method,
+plus LilyGO T-Beam GPS enhancements:
 
 It is **not affiliated with or endorsed by the Meshtastic project**. Meshtastic® is a
 registered trademark of Meshtastic LLC. Please report problems with these builds here
@@ -68,23 +69,29 @@ behave in ways you do not expect. Use them at your own risk.**
 
 ---
 
-## Meshtastic 中文 CJK 顯示支援與 T-Beam 增強固件（非官方）
+## Meshtastic 中文 CJK 显示支持与 T-Beam 增强固件（非官方）
 
-這是基於 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d` 的非官方衍生版本。主要特性如下：
+这是基于 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d` 的非官方衍生版本。主要特性如下：
 
-1. **中文 CJK 字符點陣支援（非界面漢化）**：
-   - 整合 GB2312 簡體/繁體常用中文字庫點陣（`traditional_chinese_utf8_10x10.h`），使節點在 OLED 或墨水屏上能正確渲染和顯示中文群聊消息、私聊消息及節點名稱。
-   - 支援注音/Bopomofo 螢幕與實體鍵盤輸入（針對部分支援鍵盤的機種）。
+1. **中文 CJK 字符点阵支持（非界面汉化）**：
+   - 扩充并整合 GB2312 简体/繁体常用中文字库点阵（`traditional_chinese_utf8_10x10.h`），使节点在 OLED 或电子墨水屏上能清晰、正确地渲染显示中文群聊消息、私聊消息及节点名称。
+   - 继承并保留了针对支持机型的注音（Bopomofo）屏幕与实体键盘输入法支持。
 
-2. **LilyGO T-Beam (ESP32 + u-blox NEO-6M / M8N) GPS 深度修復與 A-GPS 注入**：
-   - **PR #11697 丟星休眠修復**：修復 GPS 執行緒每 200ms 輪詢時，因 NMEA 1Hz 速率導致 80% 幾率誤判「丟星」並進入休眠的 Bug。
-   - **搜星失敗休眠懲罰上限優化**：將原本搜星逾時後最高達 1 小時（3600 秒）的懲罰性休眠強行封頂為 2 分鐘（120 秒），防止弱訊號或室內丟星後節點長時間失聯。
-   - **動態 A-GPS 輔助注入 (`UBX-AID-INI`)**：符合 u-blox 6/7/8 規格，支援開機、藍牙手機連線校時 (`set_time_only`) 及手機分享位置時動態注入衛星時間/座標輔助數據，徹底消除冷啟動頻率盲掃。
-   - **全速接收模式與 30s 常開搜星**：開啟 NEO-6M 最大效能模式並輸出 `$GPGSV` 衛星載噪比報文；`GPS_UPDATE_ALWAYS_ON_THRESHOLD_MS` 提升至 30s，使官方 App 設定 30 秒時即可進入常開全速搜星。
+2. **LilyGO T-Beam (ESP32 + u-blox NEO-6M / M8N) GPS 深度修复与 A-GPS 注入**：
+   - **PR #11697 丢星休眠修复**：修复 GPS 线程每 200ms 轮询时，因 NMEA 1Hz 速率导致 80% 几率误判“丢星”并触发休眠的官方 Bug。
+   - **搜星失败休眠惩罚上限优化**：将原本搜星超时后最高达 1 小时（3600 秒）的惩罚性休眠强行封顶为 2 分钟（120 秒），防止弱信号或室内丢星后节点长时间失联。
+   - **动态 A-GPS 辅助注入 (`UBX-AID-INI`)**：符合 u-blox 6/7/8 官方规范，支持开机、蓝牙手机连线校时（`set_time_only`）及手机共享位置时动态向芯片注入卫星时间/坐标辅助数据，彻底根除冷启动频率盲扫。
+   - **全速接收模式与 30s 常开搜星**：开启 NEO-6M 最大性能模式并输出 `$GPGSV` 卫星载噪比报文；`GPS_UPDATE_ALWAYS_ON_THRESHOLD_MS` 提升至 30s，使官方 App 设置 30 秒时即可直接进入 100% 常开全速搜星。
 
-本專案與 Meshtastic 官方專案無隸屬關係，亦未經其背書。Meshtastic® 為 Meshtastic LLC 的註冊商標。
+### 致谢 (Acknowledgements)
 
-**本韌體不提供任何形式的保證。刷機有機會讓裝置無法開機，跑著未經驗證韌體的無線電節點也可能出現非預期行為。請自行承擔使用風險。**
+衷心感谢 [Kent-Liu/meshtastic-firmware-zhtw](https://github.com/Kent-Liu/meshtastic-firmware-zhtw) 开源项目及其原作者 Kent Liu。该项目开创了针对 Meshtastic 设备的精巧点阵字库渲染管道与注音输入法体系，为本项目扩展 GB2312 简体中文字库提供了极为宝贵的工程基础与灵感！
+
+---
+
+本项目与 Meshtastic 官方项目无隶属关系，亦未经其背书。Meshtastic® 为 Meshtastic LLC 的注册商标。
+
+**本固件不提供任何形式的保证。刷机有几率让设备无法开机，运行未经验证固件的无线电节点也可能出现非预期行为。请自行承担使用风险。**
 
 ---
 
