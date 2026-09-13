@@ -1,17 +1,17 @@
-# Traditional Chinese firmware (unofficial)
+# Meshtastic Firmware with CJK Display Support (Unofficial)
 
 This is an unofficial derivative of [meshtastic/firmware](https://github.com/meshtastic/firmware),
-based on release `v2.7.26.54e0d8d`. It adds Traditional Chinese text rendering and a
-Bopomofo (zhuyin) input method to ten boards, and nothing else: every stock
-environment is left exactly as upstream ships it.
+based on release `v2.7.26.54e0d8d`. It adds CJK (Traditional & Simplified Chinese via GB2312)
+glyph rendering and optional Bopomofo input method, plus LilyGO T-Beam GPS enhancements:
 
 It is **not affiliated with or endorsed by the Meshtastic project**. Meshtastic® is a
 registered trademark of Meshtastic LLC. Please report problems with these builds here
 rather than to the upstream project, and reproduce them on a stock build before
 reporting anything upstream.
 
-| Environment | Board | Input |
+| Environment | Board | Input / Display |
 | --- | --- | --- |
+| `tbeam_zhtw` | LilyGO T-Beam (ESP32) | display only (GB2312 CJK + GPS A-GPS & Fixes) |
 | `gat562_family_zhtw` | GAT562 Family (nRF52840) | Bopomofo on the on-screen keyboard |
 | `seeed_wio_tracker_L1_zhtw` | Seeed Wio Tracker L1 / L1 Lite / L1 Pro | Bopomofo on the on-screen keyboard |
 | `seeed_wio_tracker_L1_eink_zhtw` | Seeed Wio Tracker L1 E-Ink | Bopomofo on the on-screen keyboard |
@@ -24,6 +24,10 @@ reporting anything upstream.
 | `nrf52_promicro_diy_tcxo_zhtw` | NRF52 Pro-micro DIY | display only |
 | `nrf52_promicro_diy_tcxo_ime_zhtw` | NRF52 Pro-micro DIY | Bopomofo, needs navigation hardware fitted |
 | `nrf52_promicro_diy_tcxo_kb_zhtw` | NRF52 Pro-micro DIY | Bopomofo on an I2C keyboard (M5Stack CardKB) |
+
+```
+pio run -e tbeam_zhtw
+```
 
 ```
 pio run -e gat562_family_zhtw
@@ -64,24 +68,23 @@ behave in ways you do not expect. Use them at your own risk.**
 
 ---
 
-## 繁體中文韌體（非官方）
+## Meshtastic 中文 CJK 顯示支援與 T-Beam 增強固件（非官方）
 
-這是 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d`
-的非官方衍生版本，替十款機種加上繁體中文顯示與注音輸入法，其餘一律不動：所有原廠
-env 都與上游完全相同。
+這是基於 [meshtastic/firmware](https://github.com/meshtastic/firmware) `v2.7.26.54e0d8d` 的非官方衍生版本。主要特性如下：
 
-本專案與 Meshtastic 官方專案無隸屬關係，亦未經其背書。Meshtastic® 為 Meshtastic LLC
-的註冊商標。這些韌體如有問題請回報到本專案，不要送去官方；要向官方回報之前，請先在
-原廠韌體上重現。
+1. **中文 CJK 字符點陣支援（非界面漢化）**：
+   - 整合 GB2312 簡體/繁體常用中文字庫點陣（`traditional_chinese_utf8_10x10.h`），使節點在 OLED 或墨水屏上能正確渲染和顯示中文群聊消息、私聊消息及節點名稱。
+   - 支援注音/Bopomofo 螢幕與實體鍵盤輸入（針對部分支援鍵盤的機種）。
 
-字型點陣表與注音字典都是產生出來的資料，直接收進版本庫，所以編譯時不需要額外工具。
-本專案不轉散布任何字型檔，嵌入的只有點陣資料；所有字型與字典的授權條款放在
-[`licenses/`](licenses/)，韌體整體則沿用上游的 GPL-3.0。
+2. **LilyGO T-Beam (ESP32 + u-blox NEO-6M / M8N) GPS 深度修復與 A-GPS 注入**：
+   - **PR #11697 丟星休眠修復**：修復 GPS 執行緒每 200ms 輪詢時，因 NMEA 1Hz 速率導致 80% 幾率誤判「丟星」並進入休眠的 Bug。
+   - **搜星失敗休眠懲罰上限優化**：將原本搜星逾時後最高達 1 小時（3600 秒）的懲罰性休眠強行封頂為 2 分鐘（120 秒），防止弱訊號或室內丟星後節點長時間失聯。
+   - **動態 A-GPS 輔助注入 (`UBX-AID-INI`)**：符合 u-blox 6/7/8 規格，支援開機、藍牙手機連線校時 (`set_time_only`) 及手機分享位置時動態注入衛星時間/座標輔助數據，徹底消除冷啟動頻率盲掃。
+   - **全速接收模式與 30s 常開搜星**：開啟 NEO-6M 最大效能模式並輸出 `$GPGSV` 衛星載噪比報文；`GPS_UPDATE_ALWAYS_ON_THRESHOLD_MS` 提升至 30s，使官方 App 設定 30 秒時即可進入常開全速搜星。
 
-**本韌體不提供任何形式的保證。刷機有機會讓裝置無法開機，跑著未經驗證韌體的無線電
-節點也可能出現非預期行為。請自行承擔使用風險。**
+本專案與 Meshtastic 官方專案無隸屬關係，亦未經其背書。Meshtastic® 為 Meshtastic LLC 的註冊商標。
 
-以下為上游 Meshtastic 專案的原始 README，其中的徽章與連結皆指向上游專案。
+**本韌體不提供任何形式的保證。刷機有機會讓裝置無法開機，跑著未經驗證韌體的無線電節點也可能出現非預期行為。請自行承擔使用風險。**
 
 ---
 
